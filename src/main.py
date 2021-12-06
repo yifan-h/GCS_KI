@@ -2,7 +2,7 @@ import argparse
 import torch
 
 from tasks import task_attention_plain, task_attention_drop, task_integration_analysis, \
-            task_forgetting_analysis, task_plot, task_robustness, task_baselines
+    task_forgetting_analysis, task_plot, task_robustness, task_baselines, task_downstream_results
 
 
 def main_func(args):
@@ -21,9 +21,10 @@ def main_func(args):
         # task_attention_drop(args)  # select subset of triples for pretraining
         # task_integration_analysis(args) 
         # task_forgetting_analysis(args)
-        task_plot(args)
+        # task_plot(args)
         # task_robustness(args)
         # task_baselines(args)
+        task_downstream_results(args)
     else:
         raise ValueError("Model Name Error!. Assign ernie_thu or kadapter instead!")
 
