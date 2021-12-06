@@ -983,3 +983,93 @@ def task_baselines(args):
     # linear classifier
     run_lc(args, all_KG_nx, all_feats_org, all_feats_klm)
     return
+
+def task_downstream_results(args):
+    # load dataset
+    all_qids = set()
+    with open(os.path.join(args.data_dir, "./OpenEntity/test.json"), "r") as f: 
+        test_sets = json.loads(f.read())
+    for sent in test_sets:
+        for e in sent["ents"]:
+            all_qids.add(e[0])
+    print("Entity numbers: ", len(all_qids))
+    # load attn
+    _, all_KG_nx, all_idx, _ = load_data(args, all_data=True)
+    all_idx = {v: k for k, v in all_idx.items()}
+    all_KG_nx = graph_completion(all_KG_nx)
+    all_attn = load_attn(args, mode="analysis")
+    all_KG = dgl.from_networkx(all_KG_nx)
+    all_KG = dgl.add_self_loop(all_KG)
+    all_KG.edata["a"] = all_attn
+    src, dst, _ = all_KG.edges(form="all")
+    # get forgotten and learned entity Qid
+    test_forgotten, test_learned = set(), set()
+    for i in tqdm(range(len(src))):
+        if src[i] == dst[i]:
+            tmp_qid = all_idx[int(src[i])]
+            if tmp_qid in all_qids:
+                tmp_a = float(all_KG.edata["a"][i])
+                if tmp_a > args.drop_ratio: 
+                    test_learned.add(tmp_qid)
+                else: 
+                    test_forgotten.add(tmp_qid)
+    print(len(test_forgotten), len(test_learned))
+    # print(test_forgotten,test_learned)
+    test_sets_forgotten, test_sets_learned = [], []
+    num_count, num_hit = 0, 0
+    for sent in test_sets:
+        tmp_ents = sent["ents"]
+        tmp_ind = 1
+        for e in sent["ents"]:
+            if e[0] in test_forgotten:
+                # tmp_ents.remove(e)
+                tmp_ind = 0
+                num_hit += 1
+            num_count += 1
+        sent["ents"] = tmp_ents
+        # print(tmp_ents)
+        if tmp_ind != 0:
+            test_sets_forgotten.append(sent)
+        # print(test_sets_forgotten)
+    print("no learn: ", num_count, num_hit)
+    num_count, num_hit = 0, 0
+    with open(os.path.join(args.data_dir, "./OpenEntity/test_noforget.json"), "w") as f: 
+        f.write(json.dumps(test_sets_forgotten))
+    for sent in test_sets:
+        tmp_ents = sent["ents"]
+        tmp_ind = 1
+        for e in sent["ents"]:
+            if e[0] in test_learned:
+                # tmp_ents.remove(e)
+                tmp_ind = 0
+                num_hit += 1
+            num_count += 1
+        sent["ents"] = tmp_ents
+        # print(tmp_ents)
+        if tmp_ind != 0:
+            test_sets_learned.append(sent)
+        # print(test_sets_learned)
+    print("no forget: ", num_count, num_hit)
+
+    # get hit num
+    with open(os.path.join(args.data_dir, "./OpenEntity/dev.json"), "r") as f: 
+        dev_sets = json.loads(f.read())
+    with open(os.path.join(args.data_dir, "./OpenEntity/train.json"), "r") as f: 
+        train_sets = json.loads(f.read())
+    ki_qid, dt_qid = set(), set()
+    all_dataset = train_sets + dev_sets + test_sets
+    for i in tqdm(range(len(src))):
+        if src[i] == dst[i]:
+            tmp_qid = all_idx[int(src[i])]
+            ki_qid.add(tmp_qid)
+    num_count, num_hit = 0, 0
+    for sent in all_dataset:
+        for e in sent["ents"]:
+            if e[0] in ki_qid:
+                num_hit += 1
+            num_count += 1
+    print("all num: ", num_count, num_hit)
+
+    with open(os.path.join(args.data_dir, "./OpenEntity/test_nolearn.json"), "w") as f: 
+        f.write(json.dumps(test_sets_learned))
+    print(len(test_sets_forgotten), len(test_sets_learned))
