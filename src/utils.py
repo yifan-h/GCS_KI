@@ -99,6 +99,38 @@ def get_edge_idx(src_idx, dst_idx, all_KG_nx):
     return new_src_idx, new_dst_idx, new_edge_label
 
 
+def plot_relative_score(path):
+    # settings
+    figure_size = 6
+    figure(figsize=((figure_size*(1+np.sqrt(5))), figure_size*1.2))
+    mpl.rcParams['font.size'] = 38
+    # construct cmap
+    # plot data
+    # sns.distplot(a, hist=True, kde=False, color="tab:blue")
+    sns.histplot(a, stat='probability', color="tab:blue", bins=50)
+    avg_a = sum(a)/len(a)
+    plt.axvline(avg_a, color='k', linestyle='--')
+    # sns.distplot(a)
+    # plot axis
+    if simulate_model == "kadapter": 
+        model_text = "K-Adapter"
+    else:
+        model_text = "ERNIE"
+    if type_name == "self-loops":
+        yl = "Ratio of Entities"
+    else:
+        yl = "Ratio of Triples"
+    ax = plt.gca()
+    plt.ticklabel_format(style='sci', axis='y', useOffset=False)
+    plt.text(0.53, 0.8, model_text + ": " + type_name, fontsize=30, transform=ax.transAxes, fontweight="bold")
+    plt.ylabel(yl, fontweight="bold")
+    plt.xlabel("Attention Coefficient", fontweight="bold")
+    # plt.legend(loc='upper right', prop={'size': 42})
+    # plt.title("Pearson correlation coefficient: ", fontweight="bold")
+    # save figure
+    plt.savefig(path, format='pdf', bbox_inches="tight")
+
+
 def plot_scatter(path, x, y, c):
     # settings
     figure_size = 4
@@ -158,6 +190,7 @@ def plot_downstream(path):
     num_list = [0.5052316891, 0.7318982387, 0.7475570033, 0.7559055118, 0.7594064653, 0.7641470467]
     name_list = ["ERNIE", "K-Adapter"]
     plt.bar(range(len(num_list)), num_list, color='rgb', tick_label=name_list)
+
 
 def plot_baseline(path):
     # data

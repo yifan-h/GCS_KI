@@ -18,10 +18,10 @@ def main_func(args):
     # select model to simulate: ernie_thu or kadapter
     if args.simulate_model == "ernie" or "kadapter":
         # task_attention_plain(args)  # obtain attention coefficients for all triples
-        task_attention_drop(args)  # select subset of triples for pretraining
+        # task_attention_drop(args)  # select subset of triples for pretraining
         # task_integration_analysis(args) 
         # task_forgetting_analysis(args)
-        # task_plot(args)
+        task_plot(args)
         # task_robustness(args)
         # task_baselines(args)
         # task_downstream_results(args)

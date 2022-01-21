@@ -845,10 +845,11 @@ def task_forgetting_analysis(args):
 
 
 def task_plot(args):
+    plot_relative_score(os.path.join(args.data_dir, "results", "relative.pdf"))
+    return
     # plot random as benchmark
     # plot_random(os.path.join(args.data_dir, "results"))
     plot_baseline(os.path.join(args.data_dir, "results", "baselines.pdf"))
-    return
     # load KG, index, attention_coefficients
     _, all_KG_nx, all_idx, all_data = load_data(args, all_data=True)
     all_attn = load_attn(args, mode="analysis")
