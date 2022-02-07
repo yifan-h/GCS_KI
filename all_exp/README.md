@@ -1,1 +1,3 @@
-# GCS_KI
+## Graph Convolution Simulator (GCS)
+
+Still working on
