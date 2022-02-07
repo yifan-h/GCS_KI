@@ -15,7 +15,7 @@ Source code for "[Understanding Knowledge Integration in Language Models with Gr
 Interpretation results are saved in `./example/example_data/gcs.edgelist`. 
 
 If the knowledge graph is small, users can visualize it by `./example/example_data/results.pdf`. Here is the results for the example data:
-![image](https://github.com/yifan-h/GCS_KI/blob/main/example/example_data/results.pdf)
+![image](./example/example_data/results.pdf)
 
 ### Run Knowledge Intergration Interpretation by GCS for your own model
 
