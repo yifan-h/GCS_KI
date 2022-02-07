@@ -43,6 +43,11 @@ if __name__ == "__main__":
                         help="[rc_loss, mi_loss]")
     parser.add_argument("--visualize", type=bool, default="False", 
                         help="For small KG, you can visualize it in Figure")
+    parser.add_argument("--emb_vlm", type=str, default="emb_roberta.pt", 
+                        help="Entity label embedding file for vanilla LM")
+    parser.add_argument("--emb_klm", type=str, default="emb_kadapter.pt", 
+                        help="Entity label embedding file for knowledge-enhanced LM")
+
 
     args = parser.parse_args()
 

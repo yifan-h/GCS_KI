@@ -82,6 +82,24 @@ def results_visual(args, G, a, q2l, q2i):
     plt.savefig(os.path.join(args.data_dir, "results.pdf"), format='pdf', bbox_inches="tight")
 
 
+def results_save(args, G, a, q2l, q2i):
+    dgl_g = dgl.from_networkx(G)
+    dgl_g = dgl.add_self_loop(dgl_g)
+    dgl_g.edata["a"] = a
+    nx_g = dgl.to_networkx(dgl_g, edge_attrs=["a"])
+    G = nx.DiGraph()
+    i2q = {v:k for k, v in q2i.items()}
+    for nid in nx_g.nodes():
+        G.add_node(nid)
+        G.nodes[nid]["label"] = q2l[i2q[str(nid)]]
+    for (src, dst) in nx_g.edges():
+        G.add_edge(src, dst)
+        G[src][dst]["a"] = float(nx_g[src][dst][0]["a"])
+    mapping = {i:i2q[str(i)] for i in G.nodes()}
+    G_l = nx.relabel_nodes(G, mapping)
+    nx.write_edgelist(G_l, os.path.join(args.data_dir, "gcs.edgelist"))
+
+
 def task_example(args):
     # load data
     print("start to load data...")
@@ -91,6 +109,8 @@ def task_example(args):
     attn = run_gcs(args, all_KG, all_feats_org, all_feats_klm)
     if args.visualize:
         results_visual(args, all_KG, attn, all_text, all_idx)
+    # save results
+    results_save(args, all_KG, attn, all_text, all_idx)
 
     return
 

@@ -37,7 +37,7 @@ def load_data(args):
 
 
 def load_emb(args):
-    return torch.load(os.path.join(args.data_dir, "emb_roberta.pt")), torch.load(os.path.join(args.data_dir, "emb_kadapter.pt"))
+    return torch.load(os.path.join(args.data_dir, args.emb_vlm)), torch.load(os.path.join(args.data_dir, args.emb_klm))
 
 
 # from networkx
