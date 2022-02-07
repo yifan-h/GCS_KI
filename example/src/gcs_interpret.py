@@ -1,0 +1,96 @@
+import os
+import torch
+import dgl
+import networkx as nx
+
+from utils import load_data, load_emb, graph_completion, draw_networkx_edge_labels
+from gcs_model import gcs_attention
+
+
+def run_gcs(args, KG, feats_org, feats_klm):
+    # cpu for whole KG analysis
+    args.device = torch.device("cpu")
+    if KG.number_of_nodes() != feats_klm.shape[0]:
+        KG = graph_completion(KG)
+    KG = dgl.from_networkx(KG)
+    KG = dgl.add_self_loop(KG)
+    model = gcs_attention(KG, 
+                            feats_klm.shape[1], 
+                            args.num_heads,
+                            args.temperature,
+                            args.mlp_drop,
+                            args.attn_drop).to(args.device)
+    model_path = os.path.join(args.data_dir, "model_gcs.pkl")
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    feats_org = torch.FloatTensor(feats_org).to(args.device)
+    feats_klm = torch.FloatTensor(feats_klm).to(args.device)
+    # start running (training)
+    model.train()
+    losses = [999. for _ in range(args.patience)]
+    for e in range(args.epoch):
+        if args.loss == "mi_loss":
+            loss, attn = model.mi_loss(feats_org, feats_klm)
+        else:
+            loss, attn = model.rc_loss(feats_org, feats_klm)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        print("Loss (GCS output, KG-enhanced reps) = ", loss.data.item())
+        # early stop
+        if loss.data.item() < max(losses):
+            losses.remove(max(losses))
+            losses.append(loss.data.item())
+        else:
+            break
+    return attn.detach().cpu()
+
+
+def results_visual(args, G, a, q2l, q2i):
+    dgl_g = dgl.from_networkx(G)
+    dgl_g = dgl.add_self_loop(dgl_g)
+    dgl_g.edata["a"] = a
+    nx_g = dgl.to_networkx(dgl_g, edge_attrs=["a"])
+    G = nx.DiGraph()
+    i2q = {v:k for k, v in q2i.items()}
+    for nid in nx_g.nodes():
+        G.add_node(nid)
+        G.nodes[nid]["label"] = q2l[i2q[str(nid)]]
+    for (src, dst) in nx_g.edges():
+        G.add_edge(src, dst)
+        G[src][dst]["a"] = round(float(nx_g[src][dst][0]["a"]), 3)
+    mapping = {i:q2l[i2q[str(i)]] for i in G.nodes()}
+    G_l = nx.relabel_nodes(G, mapping)
+    # draw_pos = nx.spring_layout(G_l, scale=20, k=0.9, iterations=50)
+    draw_pos = nx.circular_layout(G_l, scale=30)
+    # draw_pos = nx.shell_layout(G_l, scale=20)
+    draw_g = nx.draw_networkx(G_l, pos=draw_pos, font_size=2, node_size=50, width=0.3, arrowsize=2)
+    edge_labels = {}
+    for src, dst, edata in G_l.edges(data=True):
+        if (src, dst) not in edge_labels and (dst, src) not in edge_labels:
+            edge_labels[(src, dst)] = edata["a"]
+        else:
+            if (src, dst) in edge_labels: 
+                curr_edata = edge_labels[(src, dst)]
+                edge_labels[(src, dst)] = max(edata["a"], curr_edata)
+            else: 
+                curr_edata = edge_labels[(dst, src)]
+                edge_labels[(dst, src)] = max(edata["a"], curr_edata)
+    draw_g = draw_networkx_edge_labels(G_l, pos=draw_pos, font_size=2, edge_labels=edge_labels, label_pos=0.5)
+    labels = {(u, v): d for u, v, d in G_l.edges(data=True)}
+    import matplotlib.pyplot as plt
+    limits = plt.axis("off")
+    plt.savefig(os.path.join(args.data_dir, "results.pdf"), format='pdf', bbox_inches="tight")
+
+
+def task_example(args):
+    # load data
+    print("start to load data...")
+    all_text, all_KG, all_idx = load_data(args)
+    all_feats_org, all_feats_klm = load_emb(args)
+
+    attn = run_gcs(args, all_KG, all_feats_org, all_feats_klm)
+    if args.visualize:
+        results_visual(args, all_KG, attn, all_text, all_idx)
+
+    return
+
