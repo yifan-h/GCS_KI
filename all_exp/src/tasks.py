@@ -15,6 +15,117 @@ from emb import load_emb, load_attn, save_attn
 from models import gcs_attention, linear_classifier
 
 
+def run_lc_var(args, G, emb, reps, mlp_layer):
+    tmp_G = G.copy()
+    # learning: n*n
+    train_nfeat_idx, train_gfeat_idx, train_label = [], [], []
+    test_nfeat_idx, test_gfeat_idx, test_label = [], [], []
+    for (src, dst) in G.edges():
+        if random.random() > 0.5:
+            train_nfeat_idx.append(src)
+            train_gfeat_idx.append(dst)
+            train_label.append(1)
+        else:
+            test_nfeat_idx.append(src)
+            test_gfeat_idx.append(dst)
+            test_label.append(1)
+    # negative sampling
+    for i in range(5*G.number_of_edges()):
+        src, dst = random.sample(range(G.number_of_nodes()), 2)
+        if (src, dst) in G.edges(): continue
+        if random.random() > 0.5:
+            train_nfeat_idx.append(src)
+            train_gfeat_idx.append(dst)
+            train_label.append(0)
+        else:
+            test_nfeat_idx.append(src)
+            test_gfeat_idx.append(dst)
+            test_label.append(0)
+    train_nfeat_idx = torch.LongTensor(train_nfeat_idx)
+    train_gfeat_idx = torch.LongTensor(train_gfeat_idx)
+    train_label = torch.FloatTensor(train_label)
+    test_nfeat_idx = torch.LongTensor(test_nfeat_idx)
+    test_gfeat_idx = torch.LongTensor(test_gfeat_idx)
+    test_label = torch.FloatTensor(test_label)
+    # emb = torch.FloatTensor(emb)
+    # training
+    model_org = linear_classifier(emb.shape[1], mlp_layer)
+    model_klm = linear_classifier(reps.shape[1], mlp_layer)
+    optimizer_org = torch.optim.Adam(model_org.parameters(), lr=1e-4)
+    optimizer_klm = torch.optim.Adam(model_klm.parameters(), lr=1e-4)
+    loss_fcn_org = torch.nn.MSELoss()
+    loss_fcn_klm = torch.nn.MSELoss()
+    model_org.train()
+    model_klm.train()
+    idx_train_sampler=DataLoader([i for i in range(len(train_label))], batch_size=1024, shuffle=True)
+    for idx in idx_train_sampler:
+        nfeat = emb[train_nfeat_idx[idx]]
+        gfeat = emb[train_gfeat_idx[idx]]
+        optimizer_org.zero_grad()
+        optimizer_klm.zero_grad()
+        preds_org = model_org(nfeat, gfeat)
+        preds_klm = model_klm(nfeat, gfeat)
+        labels = train_label[idx]
+        loss_org = loss_fcn_org(preds_org, labels)
+        loss_klm = loss_fcn_org(preds_klm, labels)
+        loss_org.backward()
+        loss_klm.backward()
+        optimizer_org.step()
+        optimizer_klm.step()
+    # test
+    model_org.eval()
+    model_klm.eval()
+    idx_test_sampler=DataLoader([i for i in range(len(test_label))], batch_size=1024, shuffle=True)
+    for idx in tqdm(idx_test_sampler):
+        # org
+        nfeat = emb[test_nfeat_idx[idx]]
+        gfeat = emb[test_gfeat_idx[idx]]
+        preds_org = model_org(nfeat, gfeat).detach()
+        preds_org_bin = binarize2np(preds_org)
+        # klm
+        nfeat = reps[test_nfeat_idx[idx]]
+        gfeat = reps[test_gfeat_idx[idx]]
+        preds_klm = model_klm(nfeat, gfeat).detach()
+        labels = test_label[idx].detach()
+        preds_klm_bin = binarize2np(preds_klm)
+        # get learned number
+        labels = binarize2np(labels)
+        if edges_cos is not None:
+            results = (preds_klm_bin-preds_org_bin)*labels
+            for i in range(labels.shape[0]):
+                if results[i] == 1:
+                    total_count +=1
+                    src = int(test_nfeat_idx[idx[i]])
+                    dst = int(test_gfeat_idx[idx[i]])
+                    if (src, dst) in edges_cos or (dst, src) in edges_cos:
+                        cos_count += 1
+                    if (src, dst) in edges_euc or (dst, src) in edges_euc:
+                        euc_count += 1
+        aucs_org.append(roc_auc_score(labels, preds_org))
+        aucs_klm.append(roc_auc_score(labels, preds_klm))
+        f1s_org.append(f1_score(labels, preds_org_bin))
+        f1s_klm.append(f1_score(labels, preds_klm_bin))
+
+
+def task_lc_var(args):
+    # load embedding
+    all_KG_nx = read_edgelist(os.path.join(args.data_dir, "all_KG.edgelist"))
+    all_KG_nx = graph_completion(all_KG_nx)
+    if args.simulate_model == "kadapter": org_model_name = "roberta-large"
+    else: org_model_name = "bert-base-uncased"
+    all_feats_org = load_emb(args, None, None, org_model_name, "_all")
+    all_feats_klm = load_emb(args, None, None, args.simulate_model, "_all")
+    all_KG = dgl.from_networkx(all_KG_nx)
+    all_KG = dgl.add_self_loop(all_KG)
+    src, dst, eid = all_KG.edges(form="all")
+
+    # linear probe
+    run_lc_var(args, all_KG_nx, all_feats_org, all_feats_klm, mlp_layer=False)
+    # MLP probe
+    run_lc_var(args, all_KG_nx, all_feats_org, all_feats_klm, mlp_layer=True)
+    return
+
+
 def run_lc(args, G, emb, reps=None, edges_cos=None, edges_euc=None):
     '''
 def run_lc(args, G, noisy_emb, kg_emb):
@@ -186,6 +297,7 @@ def run_lc(args, G, noisy_emb, kg_emb):
             sum(aucs_klm)/len(aucs_klm)-sum(aucs_org)/len(aucs_org), sum(f1s_klm)/len(f1s_klm)-sum(f1s_org)/len(f1s_org))
     print(total_count, cos_count, euc_count)
     return
+
 
 def run_gcs(args, KG, feats_org, feats_klm, mode="test", save_a=True, nr=0):
     # cpu for whole KG analysis
@@ -983,6 +1095,7 @@ def task_baselines(args):
     # linear classifier
     run_lc(args, all_KG_nx, all_feats_org, all_feats_klm)
     return
+
 
 def task_downstream_results(args):
     # load dataset

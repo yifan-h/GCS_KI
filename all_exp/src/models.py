@@ -6,14 +6,17 @@ from dgl.nn.pytorch import edge_softmax
 
 
 class linear_classifier(nn.Module):
-    def __init__(self, feat_dim=0,):
+    def __init__(self, feat_dim=0, mlp=False):
         super(linear_classifier, self).__init__()
         self.linear_fh = nn.Linear(feat_dim*2, 1)
+        self.mlp = mlp
 
     def forward(self, src, dst):
         # layers_num = 0
         h = torch.cat((src, dst), dim=1)
-        return torch.squeeze(self.linear_fh(h))
+        h = self.linear_fh(h)
+        if self.mlp: h = torch.sigmoid(h)
+        return torch.squeeze(h)
 
 
 class gcs_layer(nn.Module):

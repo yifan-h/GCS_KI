@@ -1,7 +1,7 @@
 import argparse
 import torch
 
-from tasks import task_attention_plain, task_attention_drop, task_integration_analysis, \
+from tasks import task_attention_plain, task_attention_drop, task_integration_analysis, task_lc_var, 
     task_forgetting_analysis, task_plot, task_robustness, task_baselines, task_downstream_results
 
 
@@ -17,15 +17,21 @@ def main_func(args):
 
     # select model to simulate: ernie_thu or kadapter
     if args.simulate_model == "ernie" or "kadapter":
-        # task_attention_plain(args)  # obtain attention coefficients for all triples (Figure 8)
-        # task_attention_drop(args)  # select subset of triples for pretraining (Table 1, Figure 5)
+        if args.task == "attn_cal":
+            task_attention_plain(args)  # obtain attention coefficients for all triples (Figure 8)
+        elif args.task == "ki_drop":
+            task_attention_drop(args)  # select subset of triples for pretraining (Table 1, Figure 5)
+        elif args.task == "dt_drop":
+            task_downstream_results(args)  # test set for verification (Figure 6)
+        elif args.task == "lc_biasvar":
+            task_lc_var(args)
+        else: 
+            pass
         # task_integration_analysis(args)  # analyze interpretation results in terms of relation topology (Table 2)
         # task_forgetting_analysis(args)  # analyze interpretation results in terms of relation topology (Table 8)
         # task_robustness(args)  # synthetic experiment: GCS (Figure 11)
         # task_baselines(args)  # synthetic experiment: baselines (Figure 11)
-        # task_downstream_results(args)  # test set for verification (Figure 6)
         # task_plot(args)  # plot results
-        pass
     else:
         raise ValueError("Model Name Error!. Assign ernie_thu or kadapter instead!")
     return
@@ -58,10 +64,8 @@ if __name__ == "__main__":
     # GCS experiments
     parser.add_argument("--simulate_model", type=str, default="kadapter",
                         help="KG enhanced LM to simulate: [ernie, kadapter].")
-    parser.add_argument("--simuate_task", type=str, default="attention",
-                        help="task to analyze: [attention, smoothness].")
-    parser.add_argument("--simuate_pattern", type=str, default="plain",
-                        help="pattern to analyze: [plain, timewise, layerwise].")
+    parser.add_argument("--task", type=str, default="attn_cal",
+                        help="task to analyze: [attn_cal, ki_drop, dt_drop, lc_var].")
 
     # kadapter
     parser.add_argument("--data_dir", type=str, default="./data/trex-rc",
