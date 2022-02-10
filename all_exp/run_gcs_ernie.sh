@@ -1,1 +1,1 @@
-python src/main.py  --device -1  --simulate_model ernie --task attn_cal
+python src/main.py  --device -1  --simulate_model ernie --task attn_cal  --data_dir ./data/wikidata

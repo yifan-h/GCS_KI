@@ -382,7 +382,7 @@ def run_gcs(args, KG, feats_org, feats_klm, mode="test", save_a=True, nr=0):
     tmp_device = args.device
     if mode == "analysis": args.device = torch.device("cpu")
     if KG.number_of_nodes() != feats_klm.shape[0]:
-        KG = graph_completion(KG).to(args.device)
+        KG = graph_completion(KG)
     KG = dgl.from_networkx(KG)
     # set Graph Convolution Simulator
     # KG = dgl.from_networkx(KG).to(args.device)
@@ -445,7 +445,7 @@ def task_attention_plain(args):
         org_model_name = "roberta-large"
         all_feats_org = load_emb(args, all_text, all_idx, org_model_name, "_all")
         all_feats_klm = load_emb(args, all_text, all_idx, args.simulate_model, "_all")
-        run_gcs(args, all_KG, all_feats_org, all_feats_klm, mode="train")
+        run_gcs(args, all_KG, all_feats_org, all_feats_klm, mode="all")
     else: 
         org_model_name = "bert-base-uncased"
         train_text, train_KG, train_idx, test_text, test_KG, test_idx = load_data(args)
@@ -1200,11 +1200,12 @@ def task_downstream_results(args):
             if tmp_qid in all_qids:
                 tmp_a = float(all_KG.edata["a"][i])
                 if tmp_a > args.drop_ratio: 
-                    test_learned.add(tmp_qid)
+                    test_learned.add(tmp_qid)  # CR & WL
                 else: 
-                    test_forgotten.add(tmp_qid)
+                    test_forgotten.add(tmp_qid)  # CF
     print(len(test_forgotten), len(test_learned))
     # print(test_forgotten,test_learned)
+    # get w/o CF
     test_sets_forgotten, test_sets_learned = [], []
     num_count, num_hit = 0, 0
     for sent in test_sets:
@@ -1221,10 +1222,11 @@ def task_downstream_results(args):
         if tmp_ind != 0:
             test_sets_forgotten.append(sent)
         # print(test_sets_forgotten)
-    print("no learn: ", num_count, num_hit)
+    print("w/o IE: ", num_count, num_hit)
     num_count, num_hit = 0, 0
-    with open(os.path.join(args.data_dir, "./OpenEntity/test_noforget.json"), "w") as f: 
+    with open(os.path.join(args.data_dir, "./OpenEntity/test_noie.json"), "w") as f: 
         f.write(json.dumps(test_sets_forgotten))
+    # get w/o UE
     for sent in test_sets:
         tmp_ents = sent["ents"]
         tmp_ind = 1
@@ -1239,7 +1241,7 @@ def task_downstream_results(args):
         if tmp_ind != 0:
             test_sets_learned.append(sent)
         # print(test_sets_learned)
-    print("no forget: ", num_count, num_hit)
+    print("w/o UE: ", num_count, num_hit)
 
     # get hit num
     with open(os.path.join(args.data_dir, "./OpenEntity/dev.json"), "r") as f: 
@@ -1260,6 +1262,6 @@ def task_downstream_results(args):
             num_count += 1
     print("all num: ", num_count, num_hit)
 
-    with open(os.path.join(args.data_dir, "./OpenEntity/test_nolearn.json"), "w") as f: 
+    with open(os.path.join(args.data_dir, "./OpenEntity/test_noue.json"), "w") as f: 
         f.write(json.dumps(test_sets_learned))
     print(len(test_sets_forgotten), len(test_sets_learned))

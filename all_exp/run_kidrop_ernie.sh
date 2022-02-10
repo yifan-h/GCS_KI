@@ -1,1 +1,1 @@
-python src/main.py  --device -1  --simulate_model ernie --task ki_drop
+python src/main.py  --device -1  --simulate_model ernie --task ki_drop  --data_dir ./data/wikidata
