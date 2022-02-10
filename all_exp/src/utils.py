@@ -13,6 +13,7 @@ from gensim.models import Word2Vec
 import csrgraph as cg
 from sklearn.preprocessing import StandardScaler
 from scipy.spatial.distance import euclidean, cosine
+import ast
 
 
 def learned_edges(G, emb_org, emb_klm, dist_name):
@@ -446,6 +447,11 @@ def read_edgelist(path):
             src_id = int(tmp_list[0])
             dst_id = int(tmp_list[1])
             g.add_edge(src_id, dst_id)
+            if len(tmp_list) > 2:
+                # print(tmp_list)
+                e_attr = ast.literal_eval(' '.join(tmp_list[2:])[:-1])
+                for k, v in e_attr.items():
+                    g[src_id][dst_id][k] = v
     return g
 
 

@@ -1,7 +1,7 @@
 import argparse
 import torch
 
-from tasks import task_attention_plain, task_attention_drop, task_integration_analysis, task_lc_var, 
+from tasks import task_attention_plain, task_attention_drop, task_integration_analysis, task_lc_var, \
     task_forgetting_analysis, task_plot, task_robustness, task_baselines, task_downstream_results
 
 
@@ -23,7 +23,7 @@ def main_func(args):
             task_attention_drop(args)  # select subset of triples for pretraining (Table 1, Figure 5)
         elif args.task == "dt_drop":
             task_downstream_results(args)  # test set for verification (Figure 6)
-        elif args.task == "lc_biasvar":
+        elif args.task == "lc_var":
             task_lc_var(args)
         else: 
             pass

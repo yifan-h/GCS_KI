@@ -1,0 +1,1 @@
+python src/main.py  --device -1  --simulate_model kadapter --task attn_cal
