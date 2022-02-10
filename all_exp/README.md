@@ -3,7 +3,7 @@
 ### Requirements:
 
 * Install all necessary libraries for [K-Adapter](https://github.com/microsoft/K-Adapter) and [ERNIE](https://github.com/thunlp/ERNIE).
-* Prepare all data (pretraining data and knowledge graph data) and preprocess them. Users may download our pre-processed version [here]().
+* Prepare all data (pretraining data and knowledge graph data) and preprocess them. Users may download our pre-processed version [here](https://polybox.ethz.ch/index.php/s/4Qe67g7ATNOLUDW).
 
 ### Reproduce results in the paper:
 
