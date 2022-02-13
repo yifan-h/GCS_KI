@@ -11,7 +11,7 @@ from tqdm import tqdm
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score
 
 from utils import load_data, graph_completion, plot_scatter, plot_distribution, plot_random, plot_baseline,\
-    get_edge_idx, deepwalk, dist_node, dist_edge, read_edgelist, binarize2np, learned_edges
+    get_edge_idx, deepwalk, dist_node, dist_edge, read_edgelist, binarize2np, learned_edges, plot_biasvar
 from emb import load_emb, load_attn, save_attn
 from models import gcs_attention, linear_classifier
 
@@ -184,23 +184,32 @@ def run_lc_var(args, G, emb, reps, mlp_layer):
 
 
 def task_lc_var(args):
-    # load embedding
-    all_KG_nx = read_edgelist(os.path.join(args.data_dir, "all_KG.edgelist"))
-    all_KG_nx = graph_completion(all_KG_nx)
-    if args.simulate_model == "kadapter": org_model_name = "roberta-large"
-    else: org_model_name = "bert-base-uncased"
-    all_feats_org = load_emb(args, None, None, org_model_name, "_all")
-    all_feats_klm = load_emb(args, None, None, args.simulate_model, "_all")
-    all_KG = dgl.from_networkx(all_KG_nx)
-    all_KG = dgl.add_self_loop(all_KG)
-    src, dst, eid = all_KG.edges(form="all")
+    if not os.path.exists(os.path.join(args.data_dir, "kg_lc_var.edgelist")) or\
+        not os.path.exists(os.path.join(args.data_dir, "kg_mlp_var.edgelist")):
+        # load embedding
+        all_KG_nx = read_edgelist(os.path.join(args.data_dir, "all_KG.edgelist"))
+        all_KG_nx = graph_completion(all_KG_nx)
+        if args.simulate_model == "kadapter": org_model_name = "roberta-large"
+        else: org_model_name = "bert-base-uncased"
+        all_feats_org = load_emb(args, None, None, org_model_name, "_all")
+        all_feats_klm = load_emb(args, None, None, args.simulate_model, "_all")
+        all_KG = dgl.from_networkx(all_KG_nx)
+        all_KG = dgl.add_self_loop(all_KG)
+        src, dst, eid = all_KG.edges(form="all")
 
-    # linear probe
-    for i in tqdm(range(100)):
-        run_lc_var(args, all_KG_nx, all_feats_org, all_feats_klm, mlp_layer=False)
-    # MLP probe
-    for i in tqdm(range(100)):
-        run_lc_var(args, all_KG_nx, all_feats_org, all_feats_klm, mlp_layer=True)
+        # linear probe
+        for i in tqdm(range(100)):
+            run_lc_var(args, all_KG_nx, all_feats_org, all_feats_klm, mlp_layer=False)
+        
+        # MLP probe
+        for i in tqdm(range(100)):
+            run_lc_var(args, all_KG_nx, all_feats_org, all_feats_klm, mlp_layer=True)
+
+    results_lc = read_edgelist(os.path.join(args.data_dir, "kg_lc_var.edgelist"))
+    results_mlp = read_edgelist(os.path.join(args.data_dir, "kg_mlp_var.edgelist"))
+    plot_biasvar(args, results_lc, os.path.join(args.data_dir, "results/lc_var.pdf"))
+    plot_biasvar(args, results_mlp, os.path.join(args.data_dir, "results/mlp_var.pdf"), "1-layer MLP")
+
     return
 
 

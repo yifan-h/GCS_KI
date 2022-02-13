@@ -100,6 +100,54 @@ def get_edge_idx(src_idx, dst_idx, all_KG_nx):
     return new_src_idx, new_dst_idx, new_edge_label
 
 
+def plot_biasvar(args, G, var_path, model_text="linear classifier"):
+    # settings
+    figure_size = 6
+    fig = plt.figure(figsize=(figure_size*(1+np.sqrt(5)),figure_size*(1+np.sqrt(5))))
+    ax = fig.add_subplot(111, projection='3d')
+    mpl.rcParams['font.size'] = 38
+    # bias
+    bias_path = os.path.join(args.data_dir, "results/lc_bias.pdf")
+    X, Y, Z = [], [], []
+    for i in range(10000):
+        p1 = random.random()
+        p2 = random.random()
+        X.append(p1)
+        Y.append(p2)
+        Z.append(p1*p2)
+    surf = ax.plot_trisurf(X, Y, Z, cmap=plt.get_cmap("jet"), linewidth=0.0, antialiased=True)
+    plt.colorbar(surf, shrink=0.5, aspect=5)
+    plt.tricontour(X, Y, Z, levels=10, linewidths=2., colors='k')
+    ax.set_xlabel("X", fontweight="bold", fontsize=30)
+    ax.set_ylabel("Y", fontweight="bold", fontsize=30)
+    ax.set_zlabel("Z", fontweight="bold", fontsize=30)
+    plt.savefig(bias_path, format='pdf', bbox_inches="tight")
+    # variance
+    entropy_list = []
+    for src, dst, attr in G.edges(data=True):
+        tmp_freq = [v for k, v in attr["results"].items()]
+        tmp_entropy = 0
+        for v in tmp_freq:
+            if v != 0: 
+                tmp_entropy += v/100 * np.log2(v/100)
+        entropy_list.append(-tmp_entropy)
+    # settings
+    figure_size = 6
+    fig = plt.figure(figsize=((figure_size*(1+np.sqrt(5))), figure_size*1.2))
+    mpl.rcParams['font.size'] = 38
+    sns.histplot(entropy_list, stat='probability', color="tab:blue", bins=50)
+    # plt_var.axvline(avg_a, color='k', linestyle='--')
+    ax = plt.gca()
+    plt.ticklabel_format(style='sci', axis='y', useOffset=False)
+    plt.ylabel("Probability", fontweight="bold")
+    plt.xlabel("Entropy", fontweight="bold")
+    plt.text(0.6, 0.8, model_text, fontsize=30, transform=ax.transAxes, fontweight="bold")
+    # save figure
+    plt.savefig(var_path, format='pdf', bbox_inches="tight")
+
+    return
+
+
 def plot_relative_score(path):
     # settings
     figure_size = 6
