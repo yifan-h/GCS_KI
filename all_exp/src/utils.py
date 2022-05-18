@@ -118,15 +118,16 @@ def plot_biasvar(args, G, var_path, model_text="linear classifier"):
     surf = ax.plot_trisurf(X, Y, Z, cmap=plt.get_cmap("jet"), linewidth=0.0, antialiased=True)
     plt.colorbar(surf, shrink=0.5, aspect=5)
     plt.tricontour(X, Y, Z, levels=10, linewidths=2., colors='k')
-    ax.set_xlabel("X", fontweight="bold", fontsize=30)
-    ax.set_ylabel("Y", fontweight="bold", fontsize=30)
-    ax.set_zlabel("Z", fontweight="bold", fontsize=30)
+    ax.set_xlabel("X", fontweight="bold", fontsize=20)
+    ax.set_ylabel("Y", fontweight="bold", fontsize=20)
+    ax.set_zlabel("Z", fontweight="bold", fontsize=20)
     plt.savefig(bias_path, format='pdf', bbox_inches="tight")
     # variance
     entropy_list = []
     for src, dst, attr in G.edges(data=True):
         tmp_freq = [v for k, v in attr["results"].items()]
         tmp_entropy = 0
+        if sum(tmp_freq) == 0: continue
         for v in tmp_freq:
             if v != 0: 
                 tmp_entropy += v/sum(tmp_freq) * np.log2(v/sum(tmp_freq))

@@ -68,17 +68,17 @@ class gcs_layer(nn.Module):
 
 
 class gcs_attention(nn.Module):
-    def __init__(self, g, dim_num, num_heads, temperature, mlp_drop, attn_drop):
+    def __init__(self, g, emb_num, reps_num, num_heads, temperature, mlp_drop, attn_drop):
         super(gcs_attention, self).__init__()
         self.mlp_drop = nn.Dropout(mlp_drop)
-        self.bijection_tf = nn.Linear(dim_num, dim_num)
+        self.bijection_tf = nn.Linear(emb_num, emb_num)
         self.g_convolution = gcs_layer(g, 
-                                        dim_num, 
+                                        emb_num, 
                                         num_heads,
                                         temperature,
                                         attn_drop)
-        self.bijection_ft = nn.Linear(dim_num, dim_num)
-        self.mi_func = nn.Sequential(nn.Linear(2 * dim_num, 64),
+        self.bijection_ft = nn.Linear(emb_num, emb_num)
+        self.mi_func = nn.Sequential(nn.Linear(emb_num+reps_num, 64),
                                     nn.Dropout(mlp_drop),
                                     nn.ELU(),
                                     nn.Linear(64, 1),

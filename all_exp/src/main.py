@@ -1,7 +1,7 @@
 import argparse
 import torch
 
-from tasks import task_attention_plain, task_attention_drop, task_integration_analysis, task_lc_var, \
+from tasks import task_attention_plain, task_attention_drop, task_integration_analysis, task_lc_var, task_lc_bias, \
     task_forgetting_analysis, task_plot, task_robustness, task_baselines, task_downstream_results
 
 
@@ -25,6 +25,8 @@ def main_func(args):
             task_downstream_results(args)  # test set for verification (Figure 6)
         elif args.task == "lc_var":
             task_lc_var(args)
+        elif args.task == "lc_bias":
+            task_lc_bias(args)
         else: 
             pass
         # task_integration_analysis(args)  # analyze interpretation results in terms of relation topology (Table 2)
@@ -64,8 +66,8 @@ if __name__ == "__main__":
     # GCS experiments
     parser.add_argument("--simulate_model", type=str, default="kadapter",
                         help="KG enhanced LM to simulate: [ernie, kadapter].")
-    parser.add_argument("--task", type=str, default="lc_var",
-                        help="task to analyze: [attn_cal, ki_drop, dt_drop, lc_var].")
+    parser.add_argument("--task", type=str, default="lc_bias",
+                        help="task to analyze: [attn_cal, ki_drop, dt_drop, lc_var, lc_bias].")
 
     # kadapter
     parser.add_argument("--data_dir", type=str, default="./data/trex-rc",
