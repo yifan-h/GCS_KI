@@ -129,7 +129,7 @@ def plot_biasvar(args, G, var_path, model_text="linear classifier"):
         tmp_entropy = 0
         for v in tmp_freq:
             if v != 0: 
-                tmp_entropy += v/100 * np.log2(v/100)
+                tmp_entropy += v/sum(tmp_freq) * np.log2(v/sum(tmp_freq))
         entropy_list.append(-tmp_entropy)
     # settings
     figure_size = 6
@@ -487,8 +487,11 @@ def graph_split(G):
     return train_set, test_set
 
 
-def read_edgelist(path):
-    g = nx.Graph()
+def read_edgelist(path, create_using=None):
+    if create_using is not None:
+        g = nx.DiGraph()
+    else:
+        g = nx.Graph()
     with open(path, "r") as f:
         for line in f:
             tmp_list = line.split(' ')

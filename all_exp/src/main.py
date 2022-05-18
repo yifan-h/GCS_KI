@@ -46,7 +46,7 @@ if __name__ == "__main__":
                         help="which GPU to use. set -1 to use CPU.")
     parser.add_argument("--lr", type=float, default=1e-3,
                         help="learning rate of GCS.")
-    parser.add_argument("--epoch", type=int, default=1000,
+    parser.add_argument("--epoch", type=int, default=20,
                         help="number of training epochs.")
     parser.add_argument("--patience", type=int, default=10,
                         help="used for early stop")
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     # GCS experiments
     parser.add_argument("--simulate_model", type=str, default="kadapter",
                         help="KG enhanced LM to simulate: [ernie, kadapter].")
-    parser.add_argument("--task", type=str, default="attn_cal",
+    parser.add_argument("--task", type=str, default="lc_var",
                         help="task to analyze: [attn_cal, ki_drop, dt_drop, lc_var].")
 
     # kadapter

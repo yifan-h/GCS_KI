@@ -22,14 +22,14 @@ def run_lc_var(args, G, emb, reps, mlp_layer):
         if not os.path.exists(os.path.join(args.data_dir, "kg_mlp_var.edgelist")):
             results_G = G.copy()
             for (src, dst) in results_G.edges(): 
-                results_G[src][dst]["results"] = {"CF":0, "CR":0, "WL":0}
+                results_G[src][dst]["results"] = {"learned":0, "unlearned":0}
             nx.write_edgelist(results_G, os.path.join(args.data_dir, "kg_mlp_var.edgelist"))
         results_G = read_edgelist(os.path.join(args.data_dir, "kg_mlp_var.edgelist"))
     else:
         if not os.path.exists(os.path.join(args.data_dir, "kg_lc_var.edgelist")):
             results_G = G.copy()
             for (src, dst) in results_G.edges(): 
-                results_G[src][dst]["results"] = {"CF":0, "CR":0, "WL":0}
+                results_G[src][dst]["results"] = {"learned":0, "unlearned":0}
             nx.write_edgelist(results_G, os.path.join(args.data_dir, "kg_lc_var.edgelist"))
         results_G = read_edgelist(os.path.join(args.data_dir, "kg_lc_var.edgelist"))
     # learning: n*n
@@ -45,7 +45,7 @@ def run_lc_var(args, G, emb, reps, mlp_layer):
             test_gfeat_idx.append(dst)
             test_label.append(1)
     # negative sampling
-    for i in range(5*G.number_of_edges()):
+    for i in range(1*G.number_of_edges()):
         src, dst = random.sample(range(G.number_of_nodes()), 2)
         if (src, dst) in G.edges(): continue
         if random.random() > 0.5:
@@ -112,12 +112,10 @@ def run_lc_var(args, G, emb, reps, mlp_layer):
                 src = int(test_nfeat_idx[idx[i]])
                 dst = int(test_gfeat_idx[idx[i]])
                 tmp_results = results_G[src][dst]["results"]
-                if results[i] == 0:
-                    tmp_results["CR"] = tmp_results["CR"] + 1
-                elif results[i] == 1:
-                    tmp_results["WL"] = tmp_results["WL"] + 1
+                if results[i] == 1:
+                    tmp_results["learned"] = tmp_results["learned"] + 1
                 else:
-                    tmp_results["CF"] = tmp_results["CF"] + 1
+                    tmp_results["unlearned"] = tmp_results["unlearned"] + 1
                 results_G[src][dst]["results"] = tmp_results
     # reverse training
     model_org = linear_classifier(emb.shape[1], mlp_layer)
@@ -168,12 +166,10 @@ def run_lc_var(args, G, emb, reps, mlp_layer):
                 src = int(train_nfeat_idx[idx[i]])
                 dst = int(train_gfeat_idx[idx[i]])
                 tmp_results = results_G[src][dst]["results"]
-                if results[i] == 0:
-                    tmp_results["CR"] = tmp_results["CR"] + 1
-                elif results[i] == 1:
-                    tmp_results["WL"] = tmp_results["WL"] + 1
+                if results[i] == 1:
+                    tmp_results["learned"] = tmp_results["learned"] + 1
                 else:
-                    tmp_results["CF"] = tmp_results["CF"] + 1
+                    tmp_results["unlearned"] = tmp_results["unlearned"] + 1
                 results_G[src][dst]["results"] = tmp_results
     # save results
     if mlp_layer:
@@ -183,9 +179,86 @@ def run_lc_var(args, G, emb, reps, mlp_layer):
     return
 
 
+def run_gcs_var(args, KG_nx, KG, emb, reps):
+    # load results G
+    # gcs
+    if not os.path.exists(os.path.join(args.data_dir, "kg_gcs_var.edgelist")):
+        results_G = KG_nx.to_directed()
+        for (src, dst) in results_G.edges(): 
+            results_G[src][dst]["results"] = {"learned":0, "unlearned":0}
+        nx.write_edgelist(results_G, os.path.join(args.data_dir, "kg_gcs_var.edgelist"))
+    results_G = read_edgelist(os.path.join(args.data_dir, "kg_gcs_var.edgelist"), create_using=nx.DiGraph())
+    # random
+    if not os.path.exists(os.path.join(args.data_dir, "kg_random_var.edgelist")):
+        results_R = KG_nx.to_directed()
+        for (src, dst) in results_R.edges(): 
+            results_R[src][dst]["results"] = {"learned":0, "unlearned":0}
+        nx.write_edgelist(results_R, os.path.join(args.data_dir, "kg_random_var.edgelist"))
+    results_R = read_edgelist(os.path.join(args.data_dir, "kg_random_var.edgelist"), create_using=nx.DiGraph())
+
+    # cpu for whole KG analysis
+    tmp_device = args.device
+    args.device = torch.device("cpu")
+
+    model = gcs_attention(KG, 
+                            reps.shape[1], 
+                            args.num_heads,
+                            args.temperature,
+                            args.mlp_drop,
+                            args.attn_drop).to(args.device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    feats_org = torch.FloatTensor(emb).to(args.device)
+    feats_klm = torch.FloatTensor(reps).to(args.device)
+    model.train()
+    epoch_num = args.epoch
+    # start running (training / test)
+    mi_es = [-99 for _ in range(args.patience)]
+    for e in range(epoch_num):
+        loss, _ = model.mi_loss(feats_org, feats_klm)
+        # loss, _ = model.rc_loss(feats_org, feats_klm)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        # early stop
+        if -loss.data.item() > min(mi_es):
+            mi_es.remove(min(mi_es))
+            mi_es.append(-loss.data.item())
+        else:
+            break
+    print("MI(GCS output, KG-enhanced reps) = ", -loss.data.item())
+    # calculate results
+    model.eval()
+    _, all_attn = model.mi_loss(feats_org, feats_klm)
+    src, dst, eid = KG.edges(form="all")
+    for i in range(eid.shape[0]):
+        if src[i] != dst[i]:
+            tmp_results = results_G[int(src[i])][int(dst[i])]["results"]
+            if KG.edata["a"][eid[i]] >= 0.1:
+                tmp_results["learned"] = tmp_results["learned"] + 1
+            else:
+                tmp_results["unlearned"] = tmp_results["unlearned"] + 1
+            results_G[int(src[i])][int(dst[i])]["results"] = tmp_results
+            # random
+            tmp_results = results_R[int(src[i])][int(dst[i])]["results"]
+            if random.random() >= 0.5:
+                tmp_results["learned"] = tmp_results["learned"] + 1
+            else:
+                tmp_results["unlearned"] = tmp_results["unlearned"] + 1
+            results_R[int(src[i])][int(dst[i])]["results"] = tmp_results
+    args.device = tmp_device
+
+    # save results
+    nx.write_edgelist(results_G, os.path.join(args.data_dir, "kg_gcs_var.edgelist"))
+    nx.write_edgelist(results_R, os.path.join(args.data_dir, "kg_random_var.edgelist"))
+    return
+
+
+
 def task_lc_var(args):
     if not os.path.exists(os.path.join(args.data_dir, "kg_lc_var.edgelist")) or\
-        not os.path.exists(os.path.join(args.data_dir, "kg_mlp_var.edgelist")):
+        not os.path.exists(os.path.join(args.data_dir, "kg_mlp_var.edgelist")) or \
+        not os.path.exists(os.path.join(args.data_dir, "kg_gcs_var.edgelist")) or\
+        not os.path.exists(os.path.join(args.data_dir, "kg_random_var.edgelist")):
         # load embedding
         all_KG_nx = read_edgelist(os.path.join(args.data_dir, "all_KG.edgelist"))
         all_KG_nx = graph_completion(all_KG_nx)
@@ -193,95 +266,32 @@ def task_lc_var(args):
         else: org_model_name = "bert-base-uncased"
         all_feats_org = load_emb(args, None, None, org_model_name, "_all")
         all_feats_klm = load_emb(args, None, None, args.simulate_model, "_all")
-        all_KG = dgl.from_networkx(all_KG_nx)
-        all_KG = dgl.add_self_loop(all_KG)
-        src, dst, eid = all_KG.edges(form="all")
-
+        #'''
+        # random & GCS
+        KG = dgl.from_networkx(all_KG_nx)
+        KG = dgl.add_self_loop(KG)
+        for i in range(100):
+            run_gcs_var(args, all_KG_nx, KG, all_feats_org, all_feats_klm)
+        results_random = read_edgelist(os.path.join(args.data_dir, "kg_random_var.edgelist"))
+        results_gcs = read_edgelist(os.path.join(args.data_dir, "kg_gcs_var.edgelist"))
+        plot_biasvar(args, results_mlp, os.path.join(args.data_dir, "results/random_var.pdf"), "Random")
+        plot_biasvar(args, results_mlp, os.path.join(args.data_dir, "results/gcs_var.pdf"), "GCS")
+        #'''
         # linear probe
         for i in tqdm(range(100)):
             run_lc_var(args, all_KG_nx, all_feats_org, all_feats_klm, mlp_layer=False)
-        
         # MLP probe
         for i in tqdm(range(100)):
             run_lc_var(args, all_KG_nx, all_feats_org, all_feats_klm, mlp_layer=True)
-
-    results_lc = read_edgelist(os.path.join(args.data_dir, "kg_lc_var.edgelist"))
-    results_mlp = read_edgelist(os.path.join(args.data_dir, "kg_mlp_var.edgelist"))
-    plot_biasvar(args, results_lc, os.path.join(args.data_dir, "results/lc_var.pdf"))
-    plot_biasvar(args, results_mlp, os.path.join(args.data_dir, "results/mlp_var.pdf"), "1-layer MLP")
-
+        results_lc = read_edgelist(os.path.join(args.data_dir, "kg_lc_var.edgelist"))
+        results_mlp = read_edgelist(os.path.join(args.data_dir, "kg_mlp_var.edgelist"))
+        plot_biasvar(args, results_lc, os.path.join(args.data_dir, "results/lc_var.pdf"))
+        plot_biasvar(args, results_mlp, os.path.join(args.data_dir, "results/mlp_var.pdf"), "1-layer MLP")
+        #'''
     return
 
 
 def run_lc(args, G, emb, reps=None, edges_cos=None, edges_euc=None):
-    '''
-def run_lc(args, G, noisy_emb, kg_emb):
-    # forgetting: positive: nid, negative: eid
-    train_nfeat_idx, train_gfeat_idx, train_label = [], [], []
-    test_nfeat_idx, test_gfeat_idx, test_label = [], [], []
-    for nid in G.nodes():
-        if random.random() > 0.5:
-            train_nfeat_idx.append(nid)
-            train_gfeat_idx.append(nid)
-            train_label.append(1)
-        else:
-            test_nfeat_idx.append(nid)
-            test_gfeat_idx.append(nid)
-            test_label.append(1)
-    for (src, dst) in G.edges():
-        if random.random() > 0.5:
-            train_nfeat_idx.append(src)
-            train_gfeat_idx.append(dst)
-            train_label.append(0)
-        else:
-            test_nfeat_idx.append(src)
-            test_gfeat_idx.append(dst)
-            test_label.append(0)
-    train_nfeat_idx = torch.LongTensor(train_nfeat_idx)
-    train_gfeat_idx = torch.LongTensor(train_gfeat_idx)
-    train_label = torch.FloatTensor(train_label)
-    test_nfeat_idx = torch.LongTensor(test_nfeat_idx)
-    test_gfeat_idx = torch.LongTensor(test_gfeat_idx)
-    test_label = torch.FloatTensor(test_label)
-    noisy_emb = torch.FloatTensor(noisy_emb)
-    kg_emb = torch.FloatTensor(kg_emb)
-    # training
-    model = linear_classifier(noisy_emb.shape[1])
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
-    loss_fcn = torch.nn.MSELoss()
-    idx_sampler=DataLoader([i for i in range(len(train_label))], batch_size=1024, shuffle=True)
-    model.train()
-    for idx in tqdm(idx_sampler):
-        # nfeat_idx = train_nfeat_idx[idx]
-        # gfeat_idx = train_gfeat_idx[idx]
-        # print(type(idx), type(train_nfeat_idx), type(noisy_emb))
-        # print(idx.shape, train_nfeat_idx.shape, noisy_emb.shape)
-        nfeat = noisy_emb[train_nfeat_idx[idx]]
-        gfeat = kg_emb[train_gfeat_idx[idx]]
-        optimizer.zero_grad()
-        preds = model(nfeat, gfeat)
-        labels = train_label[idx]
-        loss = loss_fcn(preds, labels)
-        loss.backward()
-        optimizer.step()
-    # test
-    idx_sampler=DataLoader([i for i in range(len(test_label))], batch_size=1024, shuffle=True)
-    accs, aucs, f1s = [], [], []
-    model.eval()
-    for idx in tqdm(idx_sampler):
-        # nfeat_idx = test_nfeat_idx[idx]
-        # gfeat_idx = test_gfeat_idx[idx]
-        nfeat = noisy_emb[test_nfeat_idx[idx]]
-        gfeat = kg_emb[test_gfeat_idx[idx]]
-        preds = model(nfeat, gfeat).detach()
-        labels = test_label[idx].detach()
-        preds = binarize2np(preds)
-        labels = binarize2np(labels)
-        accs.append(accuracy_score(labels, preds))
-        aucs.append(roc_auc_score(labels, preds))
-        f1s.append(f1_score(labels, preds))
-    print("Forgetting: linear classifier: (acc, auc, f1)", sum(accs)/len(accs), sum(aucs)/len(aucs), sum(f1s)/len(f1s))
-    '''
     # learning: n*n
     train_nfeat_idx, train_gfeat_idx, train_label = [], [], []
     test_nfeat_idx, test_gfeat_idx, test_label = [], [], []
