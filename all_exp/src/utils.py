@@ -134,7 +134,7 @@ def plot_biasvar(args, G, var_path, model_text="linear classifier"):
         entropy_list.append(-tmp_entropy)
     # settings
     figure_size = 6
-    fig = plt.figure(figsize=((figure_size*(1+np.sqrt(5))), figure_size*1.2))
+    fig = plt.figure(figsize=(figure_size*2.5, figure_size*1.2))
     mpl.rcParams['font.size'] = 38
     sns.histplot(entropy_list, stat='probability', color="tab:blue", bins=50)
     # plt_var.axvline(avg_a, color='k', linestyle='--')

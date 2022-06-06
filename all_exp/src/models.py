@@ -30,8 +30,8 @@ class gcs_layer(nn.Module):
         self.attn_k = nn.Parameter(torch.Tensor(size=(dim_num, num_heads * 64)))
         self.iv = nn.Linear(dim_num, dim_num)
         nn.init.xavier_normal_(self.iv.weight.data)
-        nn.init.constant_(self.attn_q.data, 1)
-        nn.init.constant_(self.attn_k.data, 1)
+        self.attn_q.data = 1 + 0.05*nn.init.xavier_normal_(self.attn_q.data)
+        self.attn_k.data = 1 + 0.05*nn.init.xavier_normal_(self.attn_k.data)
 
     def forward(self, h):
         v = self.iv(h)
