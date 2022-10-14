@@ -1,6 +1,6 @@
 ## Graph Convolution Simulator (GCS)
 
-Source code for "[Understanding Knowledge Integration in Language Models with Graph Convolutions](https://arxiv.org/abs/2202.00964)"
+Source code for "[What Has Been Enhanced in my Knowledge-Enhanced Language Model?](https://arxiv.org/abs/2202.00964)"
 
 ### Requirements:
 
