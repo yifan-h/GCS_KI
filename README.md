@@ -3,11 +3,14 @@
 Source code for "[What Has Been Enhanced in my Knowledge-Enhanced Language Model?](https://arxiv.org/abs/2202.00964)"
 
 Below is a simple demo to use GCS. We have prepared a toy knowledge graph and its entity representations of RoBERTa and K-Adapter. 
+
 Here is the visualized results for the toy example:
+
 ![image](./example/example_data/results.png)
 
 As proved in our paper, GCS works stably, and there is no need to fix the random seeds. Users can try multiple times with similar conclusions: simple knowledge triples are integerated well, while for complex triples, only few of them can be successfully integrated.
 
+---
 
 ### Requirements:
 
@@ -22,6 +25,8 @@ As proved in our paper, GCS works stably, and there is no need to fix the random
 Interpretation results are saved in `./example/example_data/gcs.edgelist`. 
 
 If the knowledge graph is small, users can visualize it by `./example/example_data/results.pdf`. 
+
+---
 
 ### Run Knowledge Intergration Interpretation by GCS for your own model
 
