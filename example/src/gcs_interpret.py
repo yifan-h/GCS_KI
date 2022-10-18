@@ -35,7 +35,8 @@ def run_gcs(args, KG, feats_org, feats_klm):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print("Loss (GCS output, KG-enhanced reps) = ", loss.data.item())
+        if e % 10 == 0:
+            print("Loss (GCS output, KG-enhanced reps) = ", loss.data.item())
         # early stop
         if loss.data.item() < max(losses):
             losses.remove(max(losses))
@@ -60,10 +61,26 @@ def results_visual(args, G, a, q2l, q2i):
         G[src][dst]["a"] = round(float(nx_g[src][dst][0]["a"]), 3)
     mapping = {i:q2l[i2q[str(i)]] for i in G.nodes()}
     G_l = nx.relabel_nodes(G, mapping)
+    G_l.remove_edges_from(nx.selfloop_edges(G_l))  # remove self-loops
     # draw_pos = nx.spring_layout(G_l, scale=20, k=0.9, iterations=50)
-    draw_pos = nx.circular_layout(G_l, scale=30)
+    draw_pos = nx.circular_layout(G_l, scale=40)
     # draw_pos = nx.shell_layout(G_l, scale=20)
-    draw_g = nx.draw_networkx(G_l, pos=draw_pos, font_size=2, node_size=50, width=0.3, arrowsize=2)
+    G_u = nx.Graph()
+    # for e in G_l.edges(data=True): print(e)
+    for e in G_l.edges(data=True):
+        G_u.add_edge(e[0], e[1])
+        if "weight" not in G_u[e[0]][e[1]]:
+            G_u[e[0]][e[1]]["weight"] = e[2]["a"]
+        else:
+            G_u[e[0]][e[1]]["weight"] = (G_u[e[0]][e[1]]["weight"] + e[2]["a"])/2
+    # for e in G_u.edges(data=True): print(e)
+    # draw the picture
+    # draw_g = nx.draw_networkx(G_u, pos=draw_pos, font_size=2, node_size=200, width=0.3, arrows=None)
+    draw_g = nx.draw_networkx(G_u, pos=draw_pos, font_size=3, font_weight="bold", node_size=360, width=1e-8)
+    for edge in G_u.edges(data='weight'):
+        nx.draw_networkx_edges(G_u, pos=draw_pos, edgelist=[edge], width=4*edge[2])
+    '''
+    # draw the attention weights
     edge_labels = {}
     for src, dst, edata in G_l.edges(data=True):
         if (src, dst) not in edge_labels and (dst, src) not in edge_labels:
@@ -75,8 +92,9 @@ def results_visual(args, G, a, q2l, q2i):
             else: 
                 curr_edata = edge_labels[(dst, src)]
                 edge_labels[(dst, src)] = max(edata["a"], curr_edata)
-    draw_g = draw_networkx_edge_labels(G_l, pos=draw_pos, font_size=2, edge_labels=edge_labels, label_pos=0.5)
+    # draw_g = draw_networkx_edge_labels(G_l, pos=draw_pos, font_size=2, edge_labels=edge_labels, label_pos=0.5, arrows=None)
     labels = {(u, v): d for u, v, d in G_l.edges(data=True)}
+    '''
     import matplotlib.pyplot as plt
     limits = plt.axis("off")
     plt.savefig(os.path.join(args.data_dir, "results.pdf"), format='pdf', bbox_inches="tight")

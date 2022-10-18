@@ -23,7 +23,7 @@ if __name__ == "__main__":
                         help="which GPU to use. set -1 to use CPU.")
     parser.add_argument("--lr", type=float, default=1e-3,
                         help="learning rate of GCS.")
-    parser.add_argument("--epoch", type=int, default=1000,
+    parser.add_argument("--epoch", type=int, default=10000,
                         help="number of training epochs.")
     parser.add_argument("--patience", type=int, default=10,
                         help="used for early stop")
@@ -33,7 +33,7 @@ if __name__ == "__main__":
                         help="dropout rate of attention weights.")
     parser.add_argument("--num_heads", type=int, default=8,
                         help="number of hidden attention heads.")
-    parser.add_argument("--temperature", type=float, default=0.1,
+    parser.add_argument("--temperature", type=float, default=.1,
                         help="temperature of sigmoid function for attention.")
     parser.add_argument("--drop_ratio", type=float, default=0.1,
                         help="attention coeffients dropping threshold")

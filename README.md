@@ -2,20 +2,26 @@
 
 Source code for "[What Has Been Enhanced in my Knowledge-Enhanced Language Model?](https://arxiv.org/abs/2202.00964)"
 
+Below is a simple demo to use GCS. We have prepared a toy knowledge graph and its entity representations of RoBERTa and K-Adapter. 
+Here is the visualized results for the toy example:
+![image](./example/example_data/results.png)
+
+As proved in our paper, GCS works stably, and there is no need to fix the random seeds. Users can try multiple times with similar conclusions: simple knowledge triples are integerated well, while for complex triples, only few of them can be successfully integrated.
+
+
 ### Requirements:
 
 [PyTorch](https://pytorch.org/get-started/locally/) and [DGL](https://www.dgl.ai/pages/start.html) should be installed based on your system. For other libraries, you can install them using the following command:
 
     $ pip install -r requirements.txt
 
-### Run Knowledge Integration Interpretation (KI) by GCS on example data:
+### Run Knowledge Integration Interpretation by using GCS on example data:
 
     $ bash run_example.sh
 
 Interpretation results are saved in `./example/example_data/gcs.edgelist`. 
 
-If the knowledge graph is small, users can visualize it by `./example/example_data/results.pdf`. Here is the results for the example data:
-![image](./example/example_data/results.png)
+If the knowledge graph is small, users can visualize it by `./example/example_data/results.pdf`. 
 
 ### Run Knowledge Intergration Interpretation by GCS for your own model
 
