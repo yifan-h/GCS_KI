@@ -50,9 +50,12 @@ As for the hyperparameters, users may check them in `./example/src/example.py`. 
 #### Step 4: Analyze GCS interpretation results:
 The interpretation results are saved in `./example/example_data/gcs.edgelist`. Each row is for one triple as: `entity1_idx \t entity2_idx \t {'a': xxxx}`. Here, the value of `'a'` is the attention coefficient value on the triple/entity `(entity1, r, entity2)`. Users may use them to analyze the factual knowledge learned during knowledge integration.
 
+---
+
 ### Reproduce the results in the paper
 Please enter `./all_exp` folder for more details
 
+---
 
 ### Cite
 
@@ -66,6 +69,7 @@ If you use the code, please cite the paper:
   year={2022}
 }
 ```
+---
 
 ### Contact
 
