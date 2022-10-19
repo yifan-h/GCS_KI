@@ -2,13 +2,18 @@
 
 Source code for "[What Has Been Enhanced in my Knowledge-Enhanced Language Model?](https://arxiv.org/abs/2202.00964)"
 
-Below is a simple demo to use GCS. We have prepared a toy knowledge graph and its entity representations of RoBERTa and K-Adapter. 
+Our GCS probe is fairly simple to use. All you need to prepare are: **knowledge graph**; **entity representations** of base LM and enhanced LM.
 
-Here is the visualized results for the toy example:
+Below is a **demo**. We have prepared a toy knowledge graph and its entity representations of RoBERTa and K-Adapter. Here is the visualized pipeline and interpretation results for the toy example:
+
+![image](./example/example_data/pipeline.png)
 
 ![image](./example/example_data/results.png)
 
-As proved in our paper, GCS works stably, and there is no need to fix the random seeds. Users can try multiple times with similar conclusions: simple knowledge triples are integerated well, while for complex triples, only few of them can be successfully integrated.
+As proved in our paper, GCS works stably, and there is no need to fix the random seeds. Users can try multiple times with similar conclusions: For example, the knowledge triple (OR, r, Logic) is successfully integrated during the enhancement.
+
+
+## Try to play it by yourself
 
 ---
 
@@ -28,7 +33,9 @@ If the knowledge graph is small, users can visualize it by `./example/example_da
 
 ---
 
-### Run Knowledge Intergration Interpretation by GCS for your own model
+### Run GCS for your own Knowledge Integration Interpretation
+
+Only need 2 steps for **data preparation**, and 1 step for **interpretation**. Then, you can **analyze your results**!
 
 #### Step 1: Prepare the entity embedding of vanilla LM and knowledge-enhanced LM:
 Store them as PyTorch tensor (.pt) format. Make sure they have the same number of rows, and the indexes of entities are the same. The default files are `emb_roberta.pt` and `emb_kadapter.pt`.
@@ -59,7 +66,7 @@ Please enter `./all_exp` folder for more details
 
 ### Cite
 
-If you use the code, please cite the paper:
+If you use the GCS probe or the code, welcome to cite our paper:
 
 ```
 @article{hou2022understanding,
