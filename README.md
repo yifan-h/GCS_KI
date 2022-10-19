@@ -10,12 +10,11 @@ Below is a **demo**. We have prepared a toy knowledge graph and its entity repre
 
 ![image](./example/example_data/results.png)
 
-As proved in our paper, GCS works stably, and there is no need to fix the random seeds. Users can try multiple times with similar conclusions: For example, the knowledge triple (OR, r, Logic) is successfully integrated during the enhancement.
+As proved in our paper, GCS works stably, and there is no need to fix the random seeds. Users can try multiple times with similar conclusions: For example, the knowledge triple `(OR, r, Logic)` is successfully integrated during the enhancement.
 
 
 ## Try to play it by yourself
 
----
 
 ### Requirements:
 
@@ -35,27 +34,31 @@ If the knowledge graph is small, users can visualize it by `./example/example_da
 
 ### Run GCS for your own Knowledge Integration Interpretation
 
-Only need 2 steps for **data preparation**, and 1 step for **interpretation**. Then, you can **analyze your results**!
+
+*Only need 2 steps for **data preparation**, and 1 step for **interpretation**. Then, you can **analyze your results**!*
 
 #### Step 1: Prepare the entity embedding of vanilla LM and knowledge-enhanced LM:
-Store them as PyTorch tensor (.pt) format. Make sure they have the same number of rows, and the indexes of entities are the same. The default files are `emb_roberta.pt` and `emb_kadapter.pt`.
+
+>Store them as PyTorch tensor (.pt) format. Make sure they have the same number of rows, and the indexes of entities are the same. The default files are `emb_roberta.pt` and `emb_kadapter.pt`.
 
 #### Step 2: Prepare the knowledge graph:
-Three files are needed to load the knowledge graph:
+>Three files are needed to load the knowledge graph:
 
-* a) `qid2idx.json`: The index dictionary. The key is entity Q-label, and value is the index of entity in entity embedding
-* b) `qid2label.json` : The label dictionary. The key is entity Q-label, and the value is the entity label text. Note that this dictionary is only for visualization, you can set it as {Q-label: Q-label} if you don't have the text.
-* c) `kg.edgelist`: The knowledge triple to construct knowledge graph. Each row is for one triple as: `entity1_idx \t entity2_idx \t {}`.
+>* a) `qid2idx.json`: The index dictionary. The key is entity Q-label, and value is the index of entity in entity embedding
+>* b) `qid2label.json` : The label dictionary. The key is entity Q-label, and the value is the entity label text. Note that this dictionary is only for visualization, you can set it as {Q-label: Q-label} if you don't have the text.
+>* c) `kg.edgelist`: The knowledge triple to construct knowledge graph. Each row is for one triple as: `entity1_idx \t entity2_idx \t {}`.
 
 #### Step 3: Run GCS for KI interpretation:
-After two preparation steps, you can run GCS by:
+
+>After two preparation steps, you can run GCS by:
 
     $ python src/example.py  --emb_vlm emb_roberta.pt  -emb_klm emb_kadapter.pt  --data_dir ./example_data  --lr 1e-3  --loss mi_loss
 
-As for the hyperparameters, users may check them in `./example/src/example.py`. Note that for large knowledge graphs, we recommend to use mutual information loss (mi_loss), and please do not visualize the results for large knowledge graphs.
+>As for the hyperparameters, users may check them in `./example/src/example.py`. Note that for large knowledge graphs, we recommend to use mutual information loss (mi_loss), and please do not visualize the results for large knowledge graphs.
 
 #### Step 4: Analyze GCS interpretation results:
-The interpretation results are saved in `./example/example_data/gcs.edgelist`. Each row is for one triple as: `entity1_idx \t entity2_idx \t {'a': xxxx}`. Here, the value of `'a'` is the attention coefficient value on the triple/entity `(entity1, r, entity2)`. Users may use them to analyze the factual knowledge learned during knowledge integration.
+
+>The interpretation results are saved in `./example/example_data/gcs.edgelist`. Each row is for one triple as: `entity1_idx \t entity2_idx \t {'a': xxxx}`. Here, the value of `'a'` is the attention coefficient value on the triple/entity `(entity1, r, entity2)`. Users may use them to analyze the factual knowledge learned during knowledge integration.
 
 ---
 
