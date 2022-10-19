@@ -52,13 +52,13 @@ If the knowledge graph is small, users can visualize it by `./example/example_da
 
 >After two preparation steps, you can run GCS by:
 
-    $ python src/example.py  --emb_vlm emb_roberta.pt  -emb_klm emb_kadapter.pt  --data_dir ./example_data  --lr 1e-3  --loss mi_loss
+    $ python src/example.py  --emb_vlm emb_roberta.pt  --emb_klm emb_kadapter.pt  --data_dir ./example_data  --lr 1e-3  --loss mi_loss
 
 >As for the hyperparameters, users may check them in `./example/src/example.py`. Note that for large knowledge graphs, we recommend to use mutual information loss (mi_loss), and please do not visualize the results for large knowledge graphs.
 
 #### Step 4: Analyze GCS interpretation results:
 
->The interpretation results are saved in `./example/example_data/gcs.edgelist`. Each row is for one triple as: `entity1_idx \t entity2_idx \t {'a': xxxx}`. Here, the value of `'a'` is the attention coefficient value on the triple/entity `(entity1, r, entity2)`. Users may use them to analyze the factual knowledge learned during knowledge integration.
+>The interpretation results are saved in `./example/example_data/gcs.edgelist`. Each row is for one triple as: `entity1_idx \t entity2_idx \t {'a': xxxx}`. Here, the value of `'a'` is the attention coefficient value on the triple/entity `(entity1, r, entity2)`. Users may use them to analyze the factual knowledge integration.
 
 ---
 
