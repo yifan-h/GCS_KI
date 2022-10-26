@@ -73,7 +73,7 @@ If you use the GCS probe or the code, welcome to cite our paper:
 
 ```
 @article{hou2022understanding,
-  title={Understanding Knowledge Integration in Language Models with Graph Convolutions},
+  title={What Has Been Enhanced in my Knowledge-Enhanced Language Model?},
   author={Hou, Yifan and Fu, Guoji and Sachan, Mrinmaya},
   journal={arXiv preprint arXiv:2202.00964},
   year={2022}
